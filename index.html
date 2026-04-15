@@ -213,14 +213,21 @@
             // Helper per ridimensionare foto mantenendo aspect ratio
             const resizePhotoToHeight = (fotoObj, maxHeight, maxWidth) => {
               if (!fotoObj.width || !fotoObj.height) {
-                return { width: maxWidth, height: maxHeight };
+                return { width: maxWidth * 0.8, height: maxHeight * 0.9 };
               }
               const aspectRatio = fotoObj.width / fotoObj.height;
+              
+              // Calcola dimensioni basate su maxHeight
               let width = maxHeight * aspectRatio;
+              let height = maxHeight;
+              
+              // Se width supera maxWidth, riduci proporzionalmente
               if (width > maxWidth) {
                 width = maxWidth;
+                height = width / aspectRatio;
               }
-              return { width, height: maxHeight };
+              
+              return { width, height };
             };
 
             // Foto Difetto
