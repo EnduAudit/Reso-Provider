@@ -152,15 +152,19 @@
           const headerHeight = 16;
           let currentY = yPosition;
 
-          doc.setFontSize(9);
           doc.setFillColor(60, 100, 140);
           doc.setTextColor(255, 255, 255);
           doc.setFont(undefined, 'bold');
+          doc.setFontSize(10);
           
           let xPos = startX;
           headers.forEach((header, i) => {
             doc.rect(xPos, currentY, colWidths[i], headerHeight, 'F');
-            doc.text(header, xPos + 2, currentY + 11, { maxWidth: colWidths[i] - 4, fontSize: 9 });
+          });
+          
+          xPos = startX;
+          headers.forEach((header, i) => {
+            doc.text(header, xPos + 1, currentY + 12, { maxWidth: colWidths[i] - 2 });
             xPos += colWidths[i];
           });
           
