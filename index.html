@@ -143,13 +143,13 @@
         });
 
         Object.entries(pezziByProvider).forEach(([provider, pezziProvider]) => {
-          const doc = new jsPDF('l');
+          const doc = new jsPDF();
           const pageHeight = doc.internal.pageSize.getHeight();
           let yPosition = 15;
 
           doc.setFontSize(22);
           doc.setTextColor(15, 118, 110);
-          doc.text(`Contestazione Scarti - ${provider}`, 15, yPosition);
+          doc.text(`Valutazione scarti - ${provider}`, 15, yPosition);
           
           doc.setFontSize(10);
           doc.setTextColor(100, 100, 100);
