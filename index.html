@@ -35,13 +35,11 @@
       const [formData, setFormData] = useState({
         numeroPezzo: '',
         provider: 'Trigo',
-        difetto: '',
         zona: '',
         dmc: '',
         stampoJD: '',
         verifica: false,
         regoleTolleranze: '',
-        operatore: '',
       });
       const [fotoDifetto, setFotoDifetto] = useState([]);
       const [fotoVerifica, setFotoVerifica] = useState([]);
@@ -95,11 +93,6 @@
           return;
         }
 
-        if (formData.difetto && !formData.zona) {
-          alert('Se c\'è un difetto, specifica la zona');
-          return;
-        }
-
         const pezzo = {
           ...formData,
           id: Date.now(),
@@ -111,13 +104,11 @@
         setFormData({
           numeroPezzo: '',
           provider: 'Trigo',
-          difetto: '',
           zona: '',
           dmc: '',
           stampoJD: '',
           verifica: false,
           regoleTolleranze: '',
-          operatore: '',
         });
         setFotoDifetto([]);
         setFotoVerifica([]);
@@ -155,30 +146,32 @@
           
           yPosition += 25;
 
-          // Disegno tabella manuale
-          const colWidths = [20, 18, 25, 18, 25, 25, 30, 30, 35, 20]; // N°, Provider, Difetto, Zona, DMC, Stampo, FotoDif, FotoVer, Regole, Operatore
-          const rowHeight = 50;
-          const startX = 10;
+          // Header tabella
+          const colWidths = [18, 18, 15, 18, 20, 20, 28, 28, 32, 15];
+          const headers = ['N°', 'Provider', 'Zona', 'DMC', 'Stampo JD', 'Verifica', 'Foto Difetto', 'Foto Verifica', 'Regole e Tolleranze', 'Info'];
+          const startX = 9;
+          const headerHeight = 10;
           let currentY = yPosition;
 
-          // Header
-          const headers = ['N°', 'Provider', 'Difetto', 'Zona', 'DMC', 'Stampo JD', 'Foto Difetto', 'Foto Verifica', 'Regole', 'Operatore'];
-          
-          doc.setFontSize(9);
+          doc.setFontSize(8);
           doc.setFillColor(60, 100, 140);
           doc.setTextColor(255, 255, 255);
+          doc.setFont(undefined, 'bold');
           
           let xPos = startX;
           headers.forEach((header, i) => {
-            doc.rect(xPos, currentY, colWidths[i], 12, 'F');
-            doc.text(header, xPos + 1, currentY + 8, { maxWidth: colWidths[i] - 2, fontSize: 8 });
+            doc.rect(xPos, currentY, colWidths[i], headerHeight, 'F');
+            doc.text(header, xPos + 2, currentY + 6, { maxWidth: colWidths[i] - 4, fontSize: 7 });
             xPos += colWidths[i];
           });
           
-          currentY += 12;
+          currentY += headerHeight;
+          const rowHeight = 45;
 
           // Righe dati
           doc.setTextColor(40, 40, 40);
+          doc.setFont(undefined, 'normal');
+          
           pezziProvider.forEach((pezzo, pezzoIdx) => {
             if (currentY + rowHeight > pageHeight - 20) {
               doc.addPage();
@@ -189,41 +182,41 @@
 
             // N° Pezzo
             doc.rect(xPos, currentY, colWidths[0], rowHeight);
-            doc.text(pezzo.numeroPezzo, xPos + 1, currentY + 5, { maxWidth: colWidths[0] - 2, fontSize: 8 });
+            doc.text(pezzo.numeroPezzo, xPos + 2, currentY + 5, { maxWidth: colWidths[0] - 4, fontSize: 8 });
             xPos += colWidths[0];
 
             // Provider
             doc.rect(xPos, currentY, colWidths[1], rowHeight);
-            doc.text(pezzo.provider, xPos + 1, currentY + 5, { maxWidth: colWidths[1] - 2, fontSize: 8 });
+            doc.text(pezzo.provider, xPos + 2, currentY + 5, { maxWidth: colWidths[1] - 4, fontSize: 8 });
             xPos += colWidths[1];
 
-            // Difetto
+            // Zona
             doc.rect(xPos, currentY, colWidths[2], rowHeight);
-            doc.text(pezzo.difetto || '-', xPos + 1, currentY + 5, { maxWidth: colWidths[2] - 2, fontSize: 8 });
+            doc.text(pezzo.zona || '-', xPos + 2, currentY + 5, { maxWidth: colWidths[2] - 4, fontSize: 8 });
             xPos += colWidths[2];
 
-            // Zona
+            // DMC
             doc.rect(xPos, currentY, colWidths[3], rowHeight);
-            doc.text(pezzo.zona || '-', xPos + 1, currentY + 5, { maxWidth: colWidths[3] - 2, fontSize: 8 });
+            doc.text(pezzo.dmc, xPos + 2, currentY + 5, { maxWidth: colWidths[3] - 4, fontSize: 8 });
             xPos += colWidths[3];
 
-            // DMC
+            // Stampo JD
             doc.rect(xPos, currentY, colWidths[4], rowHeight);
-            doc.text(pezzo.dmc, xPos + 1, currentY + 5, { maxWidth: colWidths[4] - 2, fontSize: 8 });
+            doc.text(pezzo.stampoJD, xPos + 2, currentY + 5, { maxWidth: colWidths[4] - 4, fontSize: 8 });
             xPos += colWidths[4];
 
-            // Stampo JD
+            // Verifica (Sì/No)
             doc.rect(xPos, currentY, colWidths[5], rowHeight);
-            doc.text(pezzo.stampoJD, xPos + 1, currentY + 5, { maxWidth: colWidths[5] - 2, fontSize: 8 });
+            doc.text(pezzo.verifica ? 'Sì' : 'No', xPos + 2, currentY + 5, { maxWidth: colWidths[5] - 4, fontSize: 8 });
             xPos += colWidths[5];
 
             // Foto Difetto
             doc.rect(xPos, currentY, colWidths[6], rowHeight);
             if (pezzo.fotoDifetto.length > 0) {
-              const fotoSize = 22;
+              const fotoSize = 20;
               const spacing = 2;
               pezzo.fotoDifetto.forEach((foto, idx) => {
-                const fx = xPos + 1 + idx * (fotoSize + spacing);
+                const fx = xPos + 2 + idx * (fotoSize + spacing);
                 const fy = currentY + 2;
                 doc.addImage(foto, 'JPEG', fx, fy, fotoSize, fotoSize);
               });
@@ -233,10 +226,10 @@
             // Foto Verifica
             doc.rect(xPos, currentY, colWidths[7], rowHeight);
             if (pezzo.fotoVerifica.length > 0) {
-              const fotoSize = 22;
+              const fotoSize = 20;
               const spacing = 2;
               pezzo.fotoVerifica.forEach((foto, idx) => {
-                const fx = xPos + 1 + idx * (fotoSize + spacing);
+                const fx = xPos + 2 + idx * (fotoSize + spacing);
                 const fy = currentY + 2;
                 doc.addImage(foto, 'JPEG', fx, fy, fotoSize, fotoSize);
               });
@@ -245,12 +238,12 @@
 
             // Regole e Tolleranze
             doc.rect(xPos, currentY, colWidths[8], rowHeight);
-            doc.text(pezzo.regoleTolleranze || '-', xPos + 1, currentY + 5, { maxWidth: colWidths[8] - 2, fontSize: 7 });
+            doc.text(pezzo.regoleTolleranze || '-', xPos + 2, currentY + 5, { maxWidth: colWidths[8] - 4, fontSize: 7 });
             xPos += colWidths[8];
 
-            // Operatore
+            // Info
             doc.rect(xPos, currentY, colWidths[9], rowHeight);
-            doc.text(pezzo.operatore || '-', xPos + 1, currentY + 5, { maxWidth: colWidths[9] - 2, fontSize: 8 });
+            xPos += colWidths[9];
 
             currentY += rowHeight;
           });
@@ -290,11 +283,6 @@
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>Difetto</label>
-                  <input type="text" name="difetto" value={formData.difetto} onChange={handleInputChange} placeholder="Mancanza materiale" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
-                </div>
-
-                <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>Zona</label>
                   <input type="text" name="zona" value={formData.zona} onChange={handleInputChange} placeholder="G2" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
                 </div>
@@ -307,11 +295,6 @@
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>Stampo e JD *</label>
                   <input type="text" name="stampoJD" value={formData.stampoJD} onChange={handleInputChange} placeholder="3.2 057" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>Operatore</label>
-                  <input type="text" name="operatore" value={formData.operatore} onChange={handleInputChange} placeholder="Nome" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
                 </div>
 
                 <div>
@@ -381,7 +364,7 @@
                         {pezziProvider.map(pezzo => (
                           <div key={pezzo.id} style={{ background: 'white', padding: '10px', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #ecf0f1' }}>
                             <div style={{ flex: 1, fontSize: '12px' }}>
-                              <strong>{pezzo.numeroPezzo}</strong> - DMC: {pezzo.dmc} | JD: {pezzo.stampoJD}
+                              <strong>{pezzo.numeroPezzo}</strong> - DMC: {pezzo.dmc} | JD: {pezzo.stampoJD} | Zona: {pezzo.zona || '-'}
                             </div>
                             <button onClick={() => removePezzo(pezzo.id)} style={{ background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>✕ Rimuovi</button>
                           </div>
