@@ -58,22 +58,52 @@
         if (type === 'difetto') {
           if (fotoDifetto.length >= 2) { alert('Max 2 foto per difetto'); return; }
           Array.from(files).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (e) => setFotoDifetto(prev => [...prev, e.target.result]);
-            reader.readAsDataURL(file);
+            const img = new Image();
+            img.onload = () => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                setFotoDifetto(prev => [...prev, { 
+                  data: e.target.result, 
+                  width: img.width, 
+                  height: img.height 
+                }]);
+              };
+              reader.readAsDataURL(file);
+            };
+            img.src = URL.createObjectURL(file);
           });
         } else if (type === 'verifica') {
           if (fotoVerifica.length >= 2) { alert('Max 2 foto per verifica'); return; }
           Array.from(files).forEach(file => {
-            const reader = new FileReader();
-            reader.onload = (e) => setFotoVerifica(prev => [...prev, e.target.result]);
-            reader.readAsDataURL(file);
+            const img = new Image();
+            img.onload = () => {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                setFotoVerifica(prev => [...prev, { 
+                  data: e.target.result, 
+                  width: img.width, 
+                  height: img.height 
+                }]);
+              };
+              reader.readAsDataURL(file);
+            };
+            img.src = URL.createObjectURL(file);
           });
         } else if (type === 'operatore') {
           const file = files[0];
-          const reader = new FileReader();
-          reader.onload = (e) => setFotoOperatore(e.target.result);
-          reader.readAsDataURL(file);
+          const img = new Image();
+          img.onload = () => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              setFotoOperatore({ 
+                data: e.target.result, 
+                width: img.width, 
+                height: img.height 
+              });
+            };
+            reader.readAsDataURL(file);
+          };
+          img.src = URL.createObjectURL(file);
         }
       };
 
@@ -152,7 +182,7 @@
           });
           
           currentY += headerHeight;
-          const rowHeight = 40;
+          const rowHeight = 55;
 
           doc.setTextColor(40, 40, 40);
           doc.setFont(undefined, 'normal');
@@ -180,12 +210,28 @@
               xPos += col.w;
             });
 
+            // Helper per ridimensionare foto mantenendo aspect ratio
+            const resizePhotoToHeight = (fotoObj, maxHeight, maxWidth) => {
+              if (!fotoObj.width || !fotoObj.height) {
+                return { width: maxWidth, height: maxHeight };
+              }
+              const aspectRatio = fotoObj.width / fotoObj.height;
+              let width = maxHeight * aspectRatio;
+              if (width > maxWidth) {
+                width = maxWidth;
+              }
+              return { width, height: maxHeight };
+            };
+
             // Foto Difetto
             doc.rect(xPos, currentY, colWidths[5], rowHeight);
             if (pezzo.fotoDifetto.length > 0) {
+              const photoMaxHeight = rowHeight - 4;
+              const photoMaxWidth = (colWidths[5] - 4) / pezzo.fotoDifetto.length;
               pezzo.fotoDifetto.forEach((foto, idx) => {
-                const fx = xPos + 2 + idx * 12;
-                doc.addImage(foto, 'JPEG', fx, currentY + 2, 18, 18);
+                const dimensions = resizePhotoToHeight(foto, photoMaxHeight, photoMaxWidth);
+                const centerX = xPos + 2 + idx * photoMaxWidth + (photoMaxWidth - dimensions.width) / 2;
+                doc.addImage(foto.data, 'JPEG', centerX, currentY + 2, dimensions.width, dimensions.height);
               });
             }
             xPos += colWidths[5];
@@ -193,9 +239,12 @@
             // Foto Verifica
             doc.rect(xPos, currentY, colWidths[6], rowHeight);
             if (pezzo.fotoVerifica.length > 0) {
+              const photoMaxHeight = rowHeight - 4;
+              const photoMaxWidth = (colWidths[6] - 4) / pezzo.fotoVerifica.length;
               pezzo.fotoVerifica.forEach((foto, idx) => {
-                const fx = xPos + 2 + idx * 12;
-                doc.addImage(foto, 'JPEG', fx, currentY + 2, 18, 18);
+                const dimensions = resizePhotoToHeight(foto, photoMaxHeight, photoMaxWidth);
+                const centerX = xPos + 2 + idx * photoMaxWidth + (photoMaxWidth - dimensions.width) / 2;
+                doc.addImage(foto.data, 'JPEG', centerX, currentY + 2, dimensions.width, dimensions.height);
               });
             }
             xPos += colWidths[6];
@@ -209,11 +258,13 @@
             // Operatore (foto)
             doc.rect(xPos, currentY, colWidths[8], rowHeight);
             if (pezzo.fotoOperatore) {
-              doc.addImage(pezzo.fotoOperatore, 'JPEG', xPos + 1, currentY + 2, 10, 10);
+              const dimensions = resizePhotoToHeight(pezzo.fotoOperatore, rowHeight - 4, colWidths[8] - 4);
+              const centerX = xPos + (colWidths[8] - dimensions.width) / 2;
+              doc.addImage(pezzo.fotoOperatore.data, 'JPEG', centerX, currentY + 2, dimensions.width, dimensions.height);
             }
 
             currentY += rowHeight;
-          });
+          });;
 
           doc.setFontSize(8);
           doc.setTextColor(150, 150, 150);
