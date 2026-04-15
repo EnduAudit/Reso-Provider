@@ -156,7 +156,8 @@
         });
 
         Object.entries(pezziByProvider).forEach(([provider, pezziProvider]) => {
-          const doc = new jsPDF();
+          const doc = new jsPDF('l'); // Landscape
+          const pageWidth = doc.internal.pageSize.getWidth();
           const pageHeight = doc.internal.pageSize.getHeight();
           let yPosition = 20;
 
@@ -172,24 +173,26 @@
           
           yPosition += 25;
 
-          // Tabella riepilogo
+          // Tabella riepilogo - Ordine: N°, Provider, Zona, DMC, Stampo JD, Difetto, Regole, Operatore
           const tableData = pezziProvider.map(p => [
             p.numeroPezzo,
+            p.provider,
+            p.zona || '-',
             p.dmc,
             p.stampoJD,
             p.difetto || '-',
-            p.zona || '-',
+            p.regoleTolleranze || '-',
             p.operatore || '-'
           ]);
 
           doc.autoTable({
             startY: yPosition,
-            head: [['N° Pezzo', 'DMC', 'Stampo JD', 'Difetto', 'Zona', 'Operatore']],
+            head: [['N° Pezzo', 'Provider', 'Zona', 'DMC', 'Stampo JD', 'Difetto', 'Regole e Tolleranze', 'Operatore']],
             body: tableData,
             theme: 'grid',
             styles: {
-              fontSize: 9,
-              cellPadding: 4,
+              fontSize: 8,
+              cellPadding: 3,
               textColor: [40, 40, 40]
             },
             headStyles: {
@@ -199,6 +202,9 @@
             },
             alternateRowStyles: {
               fillColor: [245, 245, 245]
+            },
+            columnStyles: {
+              6: { cellWidth: 40 } // Colonna Regole più larga
             }
           });
 
@@ -208,21 +214,21 @@
           pezziProvider.forEach((pezzo) => {
             if (pezzo.foto.length === 0) return;
 
-            if (yPosition > pageHeight - 100) {
+            if (yPosition > pageHeight - 80) {
               doc.addPage();
               yPosition = 20;
             }
 
-            doc.setFontSize(12);
+            doc.setFontSize(11);
             doc.setTextColor(60, 100, 140);
             doc.text(`Pezzo: ${pezzo.numeroPezzo}`, 15, yPosition);
-            yPosition += 10;
+            yPosition += 8;
 
             // Foto in griglia 2x2
             const fotoPerRiga = 2;
-            const fotoWidth = 70;
-            const fotoHeight = 70;
-            const spacing = 10;
+            const fotoWidth = 50;
+            const fotoHeight = 50;
+            const spacing = 15;
 
             pezzo.foto.forEach((foto, fotoIndex) => {
               const col = fotoIndex % fotoPerRiga;
@@ -248,24 +254,6 @@
             });
 
             yPosition += Math.ceil(pezzo.foto.length / fotoPerRiga) * (fotoHeight + spacing) + 10;
-
-            // Note
-            if (pezzo.regoleTolleranze || pezzo.verifica) {
-              yPosition += 5;
-              doc.setFontSize(9);
-              doc.setTextColor(100, 100, 100);
-              if (pezzo.verifica) {
-                doc.text(`Verifica: Sì`, 15, yPosition);
-                yPosition += 5;
-              }
-              if (pezzo.regoleTolleranze) {
-                const lines = doc.splitTextToSize(pezzo.regoleTolleranze, 170);
-                doc.text(lines, 15, yPosition);
-                yPosition += lines.length * 4 + 5;
-              }
-            }
-
-            yPosition += 10;
           });
 
           // Footer
@@ -334,6 +322,13 @@
 
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>
+                    Zona
+                  </label>
+                  <input type="text" name="zona" value={formData.zona} onChange={handleInputChange} placeholder="G2" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>
                     DMC *
                   </label>
                   <input type="text" name="dmc" value={formData.dmc} onChange={handleInputChange} placeholder="38835" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
@@ -351,13 +346,6 @@
                     Difetto
                   </label>
                   <input type="text" name="difetto" value={formData.difetto} onChange={handleInputChange} placeholder="Mancanza materiale" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>
-                    Zona
-                  </label>
-                  <input type="text" name="zona" value={formData.zona} onChange={handleInputChange} placeholder="G2" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
                 </div>
 
                 <div>
@@ -436,7 +424,7 @@
                             <div style={{ flex: 1 }}>
                               <div style={{ fontWeight: '600', color: '#2c3e50', fontSize: '14px' }}>{pezzo.numeroPezzo}</div>
                               <div style={{ fontSize: '12px', color: '#7f8c8d', marginTop: '4px' }}>
-                                DMC: {pezzo.dmc} | JD: {pezzo.stampoJD} {pezzo.foto.length > 0 && `| 📸 ${pezzo.foto.length}`}
+                                DMC: {pezzo.dmc} | JD: {pezzo.stampoJD} | Zona: {pezzo.zona || '-'} {pezzo.foto.length > 0 && `| 📸 ${pezzo.foto.length}`}
                               </div>
                             </div>
                             <button onClick={() => removePezzo(pezzo.id)} style={{ background: '#e74c3c', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' }}>
