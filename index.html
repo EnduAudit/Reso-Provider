@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#3498db">
+  <meta name="theme-color" content="#0f766e">
   <title>Gestione Scarti</title>
   <link rel="manifest" href="manifest.json">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f7fa; color: #2c3e50; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", 'Helvetica Neue', sans-serif; background: linear-gradient(135deg, #0f766e 0%, #1e293b 100%); color: #1e293b; min-height: 100vh; }
     #root { min-height: 100vh; }
     @supports (padding: max(0px)) { body { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); padding-top: max(12px, env(safe-area-inset-top)); } }
   </style>
@@ -42,181 +42,150 @@
       });
       const [fotoDifetto, setFotoDifetto] = useState([]);
       const [fotoVerifica, setFotoVerifica] = useState([]);
+      const [fotoOperatore, setFotoOperatore] = useState(null);
       const fileDifettoRef = useRef(null);
       const fileVerificaRef = useRef(null);
+      const fileOperatoreRef = useRef(null);
 
       const providers = ['Trigo', 'Clavey', 'Ricom'];
 
       const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
       };
 
       const handleFotoAdd = (files, type) => {
         if (type === 'difetto') {
-          if (fotoDifetto.length >= 2) {
-            alert('Max 2 foto per difetto');
-            return;
-          }
-          files.forEach(file => {
+          if (fotoDifetto.length >= 2) { alert('Max 2 foto per difetto'); return; }
+          Array.from(files).forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => setFotoDifetto(prev => [...prev, e.target.result]);
             reader.readAsDataURL(file);
           });
-        } else {
-          if (fotoVerifica.length >= 2) {
-            alert('Max 2 foto per verifica');
-            return;
-          }
-          files.forEach(file => {
+        } else if (type === 'verifica') {
+          if (fotoVerifica.length >= 2) { alert('Max 2 foto per verifica'); return; }
+          Array.from(files).forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => setFotoVerifica(prev => [...prev, e.target.result]);
             reader.readAsDataURL(file);
           });
+        } else if (type === 'operatore') {
+          const file = files[0];
+          const reader = new FileReader();
+          reader.onload = (e) => setFotoOperatore(e.target.result);
+          reader.readAsDataURL(file);
         }
       };
 
       const removeFoto = (index, type) => {
-        if (type === 'difetto') {
-          setFotoDifetto(prev => prev.filter((_, i) => i !== index));
-        } else {
-          setFotoVerifica(prev => prev.filter((_, i) => i !== index));
-        }
+        if (type === 'difetto') setFotoDifetto(prev => prev.filter((_, i) => i !== index));
+        else if (type === 'verifica') setFotoVerifica(prev => prev.filter((_, i) => i !== index));
+        else if (type === 'operatore') setFotoOperatore(null);
       };
 
       const addPezzo = (e) => {
         e.preventDefault();
-        
         if (!formData.numeroPezzo || !formData.dmc || !formData.stampoJD) {
           alert('Compila: N° pezzo, DMC, Stampo e JD');
           return;
         }
 
-        const pezzo = {
+        setPezzi(prev => [...prev, {
           ...formData,
           id: Date.now(),
-          fotoDifetto: fotoDifetto,
-          fotoVerifica: fotoVerifica
-        };
+          fotoDifetto, fotoVerifica, fotoOperatore
+        }]);
 
-        setPezzi(prev => [...prev, pezzo]);
-        setFormData({
-          numeroPezzo: '',
-          provider: 'Trigo',
-          zona: '',
-          dmc: '',
-          stampoJD: '',
-          verifica: false,
-          regoleTolleranze: '',
-        });
+        setFormData({ numeroPezzo: '', provider: 'Trigo', zona: '', dmc: '', stampoJD: '', regoleTolleranze: '' });
         setFotoDifetto([]);
         setFotoVerifica([]);
+        setFotoOperatore(null);
       };
 
-      const removePezzo = (id) => {
-        setPezzi(prev => prev.filter(p => p.id !== id));
-      };
+      const removePezzo = (id) => setPezzi(prev => prev.filter(p => p.id !== id));
 
       const generatePDFs = () => {
         const { jsPDF } = window.jspdf;
-        
         const pezziByProvider = {};
         pezzi.forEach(pezzo => {
-          if (!pezziByProvider[pezzo.provider]) {
-            pezziByProvider[pezzo.provider] = [];
-          }
+          if (!pezziByProvider[pezzo.provider]) pezziByProvider[pezzo.provider] = [];
           pezziByProvider[pezzo.provider].push(pezzo);
         });
 
         Object.entries(pezziByProvider).forEach(([provider, pezziProvider]) => {
           const doc = new jsPDF('l');
-          const pageWidth = doc.internal.pageSize.getWidth();
           const pageHeight = doc.internal.pageSize.getHeight();
-          let yPosition = 20;
+          let yPosition = 15;
 
-          doc.setFontSize(20);
-          doc.setTextColor(40, 40, 40);
+          doc.setFontSize(22);
+          doc.setTextColor(15, 118, 110);
           doc.text(`Contestazione Scarti - ${provider}`, 15, yPosition);
           
           doc.setFontSize(10);
           doc.setTextColor(100, 100, 100);
           const today = new Date().toLocaleDateString('it-IT');
-          doc.text(`Data: ${today}`, 15, yPosition + 10);
+          doc.text(`Data: ${today}`, 15, yPosition + 8);
           
-          yPosition += 25;
+          yPosition += 20;
 
-          // Header tabella
-          const colWidths = [18, 18, 15, 18, 20, 28, 28, 32, 15];
-          const headers = ['N°', 'Provider', 'Zona', 'DMC', 'Stampo JD', 'Foto Difetto', 'Foto Verifica', 'Regole e Tolleranze', 'Info'];
-          const startX = 9;
-          const headerHeight = 16;
+          const colWidths = [14, 16, 12, 14, 16, 20, 20, 26, 12];
+          const headers = ['N°', 'Fornitore', 'Zona', 'DMC', 'Stampo', 'Foto Difetto', 'Foto Verifica', 'Regole', 'Op.'];
+          const startX = 10;
+          const headerHeight = 14;
           let currentY = yPosition;
 
-          doc.setFillColor(60, 100, 140);
+          doc.setFillColor(15, 118, 110);
           doc.setTextColor(255, 255, 255);
           doc.setFont(undefined, 'bold');
-          doc.setFontSize(10);
+          doc.setFontSize(8);
           
           let xPos = startX;
           headers.forEach((header, i) => {
             doc.rect(xPos, currentY, colWidths[i], headerHeight, 'F');
+            xPos += colWidths[i];
           });
           
           xPos = startX;
           headers.forEach((header, i) => {
-            doc.text(header, xPos + 1, currentY + 12, { maxWidth: colWidths[i] - 2 });
+            doc.text(header, xPos + 1, currentY + 10, { maxWidth: colWidths[i] - 2 });
             xPos += colWidths[i];
           });
           
           currentY += headerHeight;
-          const rowHeight = 45;
+          const rowHeight = 40;
 
-          // Righe dati
           doc.setTextColor(40, 40, 40);
           doc.setFont(undefined, 'normal');
           
-          pezziProvider.forEach((pezzo, pezzoIdx) => {
-            if (currentY + rowHeight > pageHeight - 20) {
+          pezziProvider.forEach((pezzo) => {
+            if (currentY + rowHeight > pageHeight - 15) {
               doc.addPage();
-              currentY = 20;
+              currentY = 15;
             }
 
             xPos = startX;
 
-            // N° Pezzo
-            doc.rect(xPos, currentY, colWidths[0], rowHeight);
-            doc.text(pezzo.numeroPezzo, xPos + 2, currentY + 5, { maxWidth: colWidths[0] - 4, fontSize: 8 });
-            xPos += colWidths[0];
+            const columns = [
+              { w: colWidths[0], value: pezzo.numeroPezzo },
+              { w: colWidths[1], value: pezzo.provider },
+              { w: colWidths[2], value: pezzo.zona || '-' },
+              { w: colWidths[3], value: pezzo.dmc },
+              { w: colWidths[4], value: pezzo.stampoJD },
+            ];
 
-            // Provider
-            doc.rect(xPos, currentY, colWidths[1], rowHeight);
-            doc.text(pezzo.provider, xPos + 2, currentY + 5, { maxWidth: colWidths[1] - 4, fontSize: 8 });
-            xPos += colWidths[1];
-
-            // Zona
-            doc.rect(xPos, currentY, colWidths[2], rowHeight);
-            doc.text(pezzo.zona || '-', xPos + 2, currentY + 5, { maxWidth: colWidths[2] - 4, fontSize: 8 });
-            xPos += colWidths[2];
-
-            // DMC
-            doc.rect(xPos, currentY, colWidths[3], rowHeight);
-            doc.text(pezzo.dmc, xPos + 2, currentY + 5, { maxWidth: colWidths[3] - 4, fontSize: 8 });
-            xPos += colWidths[3];
-
-            // Stampo JD
-            doc.rect(xPos, currentY, colWidths[4], rowHeight);
-            doc.text(pezzo.stampoJD, xPos + 2, currentY + 5, { maxWidth: colWidths[4] - 4, fontSize: 8 });
-            xPos += colWidths[4];
+            columns.forEach(col => {
+              doc.rect(xPos, currentY, col.w, rowHeight);
+              doc.setFontSize(8);
+              doc.text(col.value, xPos + 1, currentY + 5, { maxWidth: col.w - 2 });
+              xPos += col.w;
+            });
 
             // Foto Difetto
             doc.rect(xPos, currentY, colWidths[5], rowHeight);
             if (pezzo.fotoDifetto.length > 0) {
-              const fotoSize = 20;
-              const spacing = 2;
               pezzo.fotoDifetto.forEach((foto, idx) => {
-                const fx = xPos + 2 + idx * (fotoSize + spacing);
-                const fy = currentY + 2;
-                doc.addImage(foto, 'JPEG', fx, fy, fotoSize, fotoSize);
+                const fx = xPos + 2 + idx * 12;
+                doc.addImage(foto, 'JPEG', fx, currentY + 2, 18, 18);
               });
             }
             xPos += colWidths[5];
@@ -224,31 +193,31 @@
             // Foto Verifica
             doc.rect(xPos, currentY, colWidths[6], rowHeight);
             if (pezzo.fotoVerifica.length > 0) {
-              const fotoSize = 20;
-              const spacing = 2;
               pezzo.fotoVerifica.forEach((foto, idx) => {
-                const fx = xPos + 2 + idx * (fotoSize + spacing);
-                const fy = currentY + 2;
-                doc.addImage(foto, 'JPEG', fx, fy, fotoSize, fotoSize);
+                const fx = xPos + 2 + idx * 12;
+                doc.addImage(foto, 'JPEG', fx, currentY + 2, 18, 18);
               });
             }
             xPos += colWidths[6];
 
-            // Regole e Tolleranze
+            // Regole
             doc.rect(xPos, currentY, colWidths[7], rowHeight);
-            doc.text(pezzo.regoleTolleranze || '-', xPos + 2, currentY + 5, { maxWidth: colWidths[7] - 4, fontSize: 7 });
+            doc.setFontSize(7);
+            doc.text(pezzo.regoleTolleranze || '-', xPos + 1, currentY + 3, { maxWidth: colWidths[7] - 2 });
             xPos += colWidths[7];
 
-            // Info
+            // Operatore (foto)
             doc.rect(xPos, currentY, colWidths[8], rowHeight);
-            xPos += colWidths[8];
+            if (pezzo.fotoOperatore) {
+              doc.addImage(pezzo.fotoOperatore, 'JPEG', xPos + 1, currentY + 2, 10, 10);
+            }
 
             currentY += rowHeight;
-          });;
+          });
 
           doc.setFontSize(8);
           doc.setTextColor(150, 150, 150);
-          doc.text(`${provider} - ${today}`, 15, pageHeight - 10);
+          doc.text(`${provider} - ${today}`, 15, pageHeight - 8);
 
           doc.save(`Scarti_${provider}_${today.replace(/\//g, '-')}.pdf`);
         });
@@ -257,121 +226,138 @@
       const hasDati = pezzi.length > 0;
 
       return (
-        <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', padding: '20px' }}>
+        <div style={{ minHeight: '100vh', padding: '20px', paddingBottom: 'max(20px, env(safe-area-inset-bottom))' }}>
           <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-            <div style={{ background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <h1 style={{ margin: '0 0 8px 0', fontSize: '28px', color: '#2c3e50', fontWeight: '600' }}>Gestione Scarti</h1>
-              <p style={{ margin: 0, fontSize: '14px', color: '#7f8c8d' }}>Registra pezzi e genera PDF</p>
+            <div style={{ background: 'white', borderRadius: '16px', padding: '28px', marginBottom: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)', backdropFilter: 'blur(10px)' }}>
+              <h1 style={{ margin: '0 0 8px 0', fontSize: '32px', color: '#0f766e', fontWeight: '700' }}>Gestione Scarti</h1>
+              <p style={{ margin: 0, fontSize: '15px', color: '#64748b' }}>Registra pezzi difettosi e genera report PDF professionali</p>
             </div>
 
-            <form onSubmit={addPezzo} style={{ background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-              <h2 style={{ fontSize: '16px', color: '#2c3e50', marginTop: 0, marginBottom: '20px', fontWeight: '600' }}>Aggiungi Pezzo</h2>
+            <form onSubmit={addPezzo} style={{ background: 'white', borderRadius: '16px', padding: '28px', marginBottom: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+              <h2 style={{ fontSize: '18px', color: '#1e293b', marginTop: 0, marginBottom: '24px', fontWeight: '600' }}>Nuovo Pezzo</h2>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>N° Pezzo *</label>
-                  <input type="text" name="numeroPezzo" value={formData.numeroPezzo} onChange={handleInputChange} placeholder="0308-51" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0f766e', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>N° Pezzo *</label>
+                  <input type="text" name="numeroPezzo" value={formData.numeroPezzo} onChange={handleInputChange} placeholder="0308-51" style={{ width: '100%', padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', transition: 'border-color 0.2s', outline: 'none' }} onFocus={(e) => e.target.style.borderColor = '#0f766e'} onBlur={(e) => e.target.style.borderColor = '#e2e8f0'} />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>Provider *</label>
-                  <select name="provider" value={formData.provider} onChange={handleInputChange} style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0f766e', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fornitore *</label>
+                  <select name="provider" value={formData.provider} onChange={handleInputChange} style={{ width: '100%', padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} onFocus={(e) => e.target.style.borderColor = '#0f766e'} onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}>
                     {providers.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>Zona</label>
-                  <input type="text" name="zona" value={formData.zona} onChange={handleInputChange} placeholder="G2" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0f766e', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Zona</label>
+                  <input type="text" name="zona" value={formData.zona} onChange={handleInputChange} placeholder="G2" style={{ width: '100%', padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} onFocus={(e) => e.target.style.borderColor = '#0f766e'} onBlur={(e) => e.target.style.borderColor = '#e2e8f0'} />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>DMC *</label>
-                  <input type="text" name="dmc" value={formData.dmc} onChange={handleInputChange} placeholder="38835" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0f766e', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>DMC *</label>
+                  <input type="text" name="dmc" value={formData.dmc} onChange={handleInputChange} placeholder="38835" style={{ width: '100%', padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} onFocus={(e) => e.target.style.borderColor = '#0f766e'} onBlur={(e) => e.target.style.borderColor = '#e2e8f0'} />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>Stampo e JD *</label>
-                  <input type="text" name="stampoJD" value={formData.stampoJD} onChange={handleInputChange} placeholder="3.2 057" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0f766e', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Stampo e JD *</label>
+                  <input type="text" name="stampoJD" value={formData.stampoJD} onChange={handleInputChange} placeholder="3.2 057" style={{ width: '100%', padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} onFocus={(e) => e.target.style.borderColor = '#0f766e'} onBlur={(e) => e.target.style.borderColor = '#e2e8f0'} />
                 </div>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>Regole e Tolleranze</label>
-                <textarea name="regoleTolleranze" value={formData.regoleTolleranze} onChange={handleInputChange} placeholder="Note..." rows="2" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0f766e', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Regole e Tolleranze</label>
+                <textarea name="regoleTolleranze" value={formData.regoleTolleranze} onChange={handleInputChange} placeholder="Note tecniche..." rows="2" style={{ width: '100%', padding: '12px 14px', border: '2px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none', resize: 'vertical' }} onFocus={(e) => e.target.style.borderColor = '#0f766e'} onBlur={(e) => e.target.style.borderColor = '#e2e8f0'} />
               </div>
 
-              {/* Foto Difetto */}
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '8px' }}>Foto Difetto ({fotoDifetto.length}/2)</label>
-                <div onClick={() => fileDifettoRef.current?.click()} style={{ border: '2px dashed #bdc3c7', borderRadius: '8px', padding: '20px', textAlign: 'center', cursor: 'pointer', background: '#f8f9fa', marginBottom: '8px' }}>
-                  <p style={{ margin: 0, color: '#2c3e50', fontWeight: '500', fontSize: '14px' }}>📸 Aggiungi foto difetto</p>
-                </div>
-                <input ref={fileDifettoRef} type="file" multiple accept="image/*" onChange={(e) => handleFotoAdd(Array.from(e.target.files), 'difetto')} style={{ display: 'none' }} />
-                {fotoDifetto.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    {fotoDifetto.map((foto, idx) => (
-                      <div key={idx} style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden' }}>
-                        <img src={foto} alt="" style={{ width: '100%', height: '60px', objectFit: 'cover' }} />
-                        <button type="button" onClick={() => removeFoto(idx, 'difetto')} style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', borderRadius: '3px', padding: '2px 4px', fontSize: '12px', cursor: 'pointer' }}>✕</button>
-                      </div>
-                    ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+                {/* Foto Difetto */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0f766e', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Foto Difetto ({fotoDifetto.length}/2)</label>
+                  <div onClick={() => fileDifettoRef.current?.click()} style={{ border: '2px dashed #cbd5e1', borderRadius: '10px', padding: '18px 12px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0f766e'; e.currentTarget.style.background = '#f0fdfb'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f8fafc'; }}>
+                    <p style={{ margin: 0, color: '#0f766e', fontWeight: '600', fontSize: '13px' }}>📸 Aggiungi</p>
                   </div>
-                )}
-              </div>
-
-              {/* Foto Verifica */}
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '8px' }}>Foto Verifica ({fotoVerifica.length}/2)</label>
-                <div onClick={() => fileVerificaRef.current?.click()} style={{ border: '2px dashed #bdc3c7', borderRadius: '8px', padding: '20px', textAlign: 'center', cursor: 'pointer', background: '#f8f9fa', marginBottom: '8px' }}>
-                  <p style={{ margin: 0, color: '#2c3e50', fontWeight: '500', fontSize: '14px' }}>📸 Aggiungi foto verifica</p>
+                  <input ref={fileDifettoRef} type="file" multiple accept="image/*" onChange={(e) => handleFotoAdd(e.target.files, 'difetto')} style={{ display: 'none' }} />
+                  {fotoDifetto.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '10px' }}>
+                      {fotoDifetto.map((foto, idx) => (
+                        <div key={idx} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '2px solid #e2e8f0' }}>
+                          <img src={foto} alt="" style={{ width: '100%', height: '50px', objectFit: 'cover' }} />
+                          <button type="button" onClick={() => removeFoto(idx, 'difetto')} style={{ position: 'absolute', top: '2px', right: '2px', background: '#ef4444', border: 'none', color: 'white', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <input ref={fileVerificaRef} type="file" multiple accept="image/*" onChange={(e) => handleFotoAdd(Array.from(e.target.files), 'verifica')} style={{ display: 'none' }} />
-                {fotoVerifica.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                    {fotoVerifica.map((foto, idx) => (
-                      <div key={idx} style={{ position: 'relative', borderRadius: '6px', overflow: 'hidden' }}>
-                        <img src={foto} alt="" style={{ width: '100%', height: '60px', objectFit: 'cover' }} />
-                        <button type="button" onClick={() => removeFoto(idx, 'verifica')} style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', borderRadius: '3px', padding: '2px 4px', fontSize: '12px', cursor: 'pointer' }}>✕</button>
-                      </div>
-                    ))}
+
+                {/* Foto Verifica */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0f766e', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Foto Verifica ({fotoVerifica.length}/2)</label>
+                  <div onClick={() => fileVerificaRef.current?.click()} style={{ border: '2px dashed #cbd5e1', borderRadius: '10px', padding: '18px 12px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0f766e'; e.currentTarget.style.background = '#f0fdfb'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f8fafc'; }}>
+                    <p style={{ margin: 0, color: '#0f766e', fontWeight: '600', fontSize: '13px' }}>📸 Aggiungi</p>
                   </div>
-                )}
+                  <input ref={fileVerificaRef} type="file" multiple accept="image/*" onChange={(e) => handleFotoAdd(e.target.files, 'verifica')} style={{ display: 'none' }} />
+                  {fotoVerifica.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '10px' }}>
+                      {fotoVerifica.map((foto, idx) => (
+                        <div key={idx} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '2px solid #e2e8f0' }}>
+                          <img src={foto} alt="" style={{ width: '100%', height: '50px', objectFit: 'cover' }} />
+                          <button type="button" onClick={() => removeFoto(idx, 'verifica')} style={{ position: 'absolute', top: '2px', right: '2px', background: '#ef4444', border: 'none', color: 'white', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Foto Operatore */}
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#0f766e', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Foto Operatore</label>
+                  <div onClick={() => fileOperatoreRef.current?.click()} style={{ border: '2px dashed #cbd5e1', borderRadius: '10px', padding: '18px 12px', textAlign: 'center', cursor: 'pointer', background: '#f8fafc', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0f766e'; e.currentTarget.style.background = '#f0fdfb'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.background = '#f8fafc'; }}>
+                    <p style={{ margin: 0, color: '#0f766e', fontWeight: '600', fontSize: '13px' }}>📸 Aggiungi</p>
+                  </div>
+                  <input ref={fileOperatoreRef} type="file" accept="image/*" onChange={(e) => handleFotoAdd(e.target.files, 'operatore')} style={{ display: 'none' }} />
+                  {fotoOperatore && (
+                    <div style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '2px solid #e2e8f0', marginTop: '10px' }}>
+                      <img src={fotoOperatore} alt="" style={{ width: '100%', height: '60px', objectFit: 'cover' }} />
+                      <button type="button" onClick={() => removeFoto(0, 'operatore')} style={{ position: 'absolute', top: '2px', right: '2px', background: '#ef4444', border: 'none', color: 'white', borderRadius: '4px', padding: '2px 6px', fontSize: '11px', cursor: 'pointer', fontWeight: '600' }}>✕</button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <button type="submit" style={{ width: '100%', padding: '12px', background: '#3498db', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>➕ Aggiungi Pezzo</button>
+              <button type="submit" style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #0f766e 0%, #0d5c57 100%)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 6px rgba(15, 118, 110, 0.2)' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 12px rgba(15, 118, 110, 0.3)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(15, 118, 110, 0.2)'; }}>✚ Aggiungi Pezzo</button>
             </form>
 
             {hasDati && (
-              <div style={{ background: 'white', borderRadius: '12px', padding: '24px', marginBottom: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <h2 style={{ fontSize: '16px', color: '#2c3e50', marginTop: 0, marginBottom: '16px', fontWeight: '600' }}>Pezzi ({pezzi.length})</h2>
+              <div style={{ background: 'white', borderRadius: '16px', padding: '28px', marginBottom: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                <h2 style={{ fontSize: '18px', color: '#1e293b', marginTop: 0, marginBottom: '20px', fontWeight: '600' }}>Pezzi Registrati ({pezzi.length})</h2>
                 {providers.map(provider => {
                   const pezziProvider = pezzi.filter(p => p.provider === provider);
                   if (pezziProvider.length === 0) return null;
                   return (
-                    <div key={provider} style={{ background: '#f8f9fa', border: '1px solid #ecf0f1', borderRadius: '8px', padding: '12px', marginBottom: '12px' }}>
-                      <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600', color: '#2c3e50' }}>{provider} ({pezziProvider.length})</h3>
-                      <div style={{ display: 'grid', gap: '8px' }}>
+                    <div key={provider} style={{ background: 'linear-gradient(135deg, #f0fdfb 0%, #f8fafc 100%)', border: '1px solid #d1e7e4', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+                      <h3 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '600', color: '#0f766e' }}>📦 {provider} ({pezziProvider.length})</h3>
+                      <div style={{ display: 'grid', gap: '10px' }}>
                         {pezziProvider.map(pezzo => (
-                          <div key={pezzo.id} style={{ background: 'white', padding: '10px', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #ecf0f1' }}>
-                            <div style={{ flex: 1, fontSize: '12px' }}>
-                              <strong>{pezzo.numeroPezzo}</strong> - DMC: {pezzo.dmc} | JD: {pezzo.stampoJD} | Zona: {pezzo.zona || '-'}
+                          <div key={pezzo.id} style={{ background: 'white', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e2e8f0' }}>
+                            <div style={{ flex: 1, fontSize: '13px' }}>
+                              <strong style={{ color: '#0f766e' }}>{pezzo.numeroPezzo}</strong> • DMC: {pezzo.dmc} • JD: {pezzo.stampoJD}
                             </div>
-                            <button onClick={() => removePezzo(pezzo.id)} style={{ background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '11px', fontWeight: '500' }}>✕ Rimuovi</button>
+                            <button onClick={() => removePezzo(pezzo.id)} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#dc2626'} onMouseLeave={(e) => e.currentTarget.style.background = '#ef4444'}>✕ Rimuovi</button>
                           </div>
                         ))}
                       </div>
                     </div>
                   );
                 })}
-                <button onClick={generatePDFs} style={{ width: '100%', padding: '14px', background: '#27ae60', color: 'white', border: 'none', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '16px' }}>⬇️ Genera PDF</button>
+                <button onClick={generatePDFs} style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', marginTop: '20px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 6px rgba(5, 150, 105, 0.2)' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 12px rgba(5, 150, 105, 0.3)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px rgba(5, 150, 105, 0.2)'; }}>⬇️ Genera PDF per Fornitore</button>
               </div>
             )}
 
             {!hasDati && (
-              <div style={{ background: 'white', borderRadius: '12px', padding: '50px 24px', textAlign: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                <p style={{ fontSize: '32px', margin: '0 0 16px 0' }}>📋</p>
-                <p style={{ color: '#7f8c8d', fontSize: '14px', margin: 0 }}>Aggiungi il primo pezzo</p>
+              <div style={{ background: 'white', borderRadius: '16px', padding: '60px 24px', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                <p style={{ fontSize: '48px', margin: '0 0 16px 0' }}>📋</p>
+                <p style={{ color: '#64748b', fontSize: '15px', margin: 0 }}>Inizia aggiungendo il primo pezzo</p>
               </div>
             )}
           </div>
