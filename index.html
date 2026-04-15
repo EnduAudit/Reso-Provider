@@ -38,7 +38,6 @@
         zona: '',
         dmc: '',
         stampoJD: '',
-        verifica: false,
         regoleTolleranze: '',
       });
       const [fotoDifetto, setFotoDifetto] = useState([]);
@@ -147,13 +146,13 @@
           yPosition += 25;
 
           // Header tabella
-          const colWidths = [18, 18, 15, 18, 20, 20, 28, 28, 32, 15];
-          const headers = ['N°', 'Provider', 'Zona', 'DMC', 'Stampo JD', 'Verifica', 'Foto Difetto', 'Foto Verifica', 'Regole e Tolleranze', 'Info'];
+          const colWidths = [18, 18, 15, 18, 20, 28, 28, 32, 15];
+          const headers = ['N°', 'Provider', 'Zona', 'DMC', 'Stampo JD', 'Foto Difetto', 'Foto Verifica', 'Regole e Tolleranze', 'Info'];
           const startX = 9;
-          const headerHeight = 10;
+          const headerHeight = 16;
           let currentY = yPosition;
 
-          doc.setFontSize(8);
+          doc.setFontSize(9);
           doc.setFillColor(60, 100, 140);
           doc.setTextColor(255, 255, 255);
           doc.setFont(undefined, 'bold');
@@ -161,7 +160,7 @@
           let xPos = startX;
           headers.forEach((header, i) => {
             doc.rect(xPos, currentY, colWidths[i], headerHeight, 'F');
-            doc.text(header, xPos + 2, currentY + 6, { maxWidth: colWidths[i] - 4, fontSize: 7 });
+            doc.text(header, xPos + 2, currentY + 11, { maxWidth: colWidths[i] - 4, fontSize: 9 });
             xPos += colWidths[i];
           });
           
@@ -205,13 +204,8 @@
             doc.text(pezzo.stampoJD, xPos + 2, currentY + 5, { maxWidth: colWidths[4] - 4, fontSize: 8 });
             xPos += colWidths[4];
 
-            // Verifica (Sì/No)
-            doc.rect(xPos, currentY, colWidths[5], rowHeight);
-            doc.text(pezzo.verifica ? 'Sì' : 'No', xPos + 2, currentY + 5, { maxWidth: colWidths[5] - 4, fontSize: 8 });
-            xPos += colWidths[5];
-
             // Foto Difetto
-            doc.rect(xPos, currentY, colWidths[6], rowHeight);
+            doc.rect(xPos, currentY, colWidths[5], rowHeight);
             if (pezzo.fotoDifetto.length > 0) {
               const fotoSize = 20;
               const spacing = 2;
@@ -221,10 +215,10 @@
                 doc.addImage(foto, 'JPEG', fx, fy, fotoSize, fotoSize);
               });
             }
-            xPos += colWidths[6];
+            xPos += colWidths[5];
 
             // Foto Verifica
-            doc.rect(xPos, currentY, colWidths[7], rowHeight);
+            doc.rect(xPos, currentY, colWidths[6], rowHeight);
             if (pezzo.fotoVerifica.length > 0) {
               const fotoSize = 20;
               const spacing = 2;
@@ -234,19 +228,19 @@
                 doc.addImage(foto, 'JPEG', fx, fy, fotoSize, fotoSize);
               });
             }
-            xPos += colWidths[7];
+            xPos += colWidths[6];
 
             // Regole e Tolleranze
-            doc.rect(xPos, currentY, colWidths[8], rowHeight);
-            doc.text(pezzo.regoleTolleranze || '-', xPos + 2, currentY + 5, { maxWidth: colWidths[8] - 4, fontSize: 7 });
-            xPos += colWidths[8];
+            doc.rect(xPos, currentY, colWidths[7], rowHeight);
+            doc.text(pezzo.regoleTolleranze || '-', xPos + 2, currentY + 5, { maxWidth: colWidths[7] - 4, fontSize: 7 });
+            xPos += colWidths[7];
 
             // Info
-            doc.rect(xPos, currentY, colWidths[9], rowHeight);
-            xPos += colWidths[9];
+            doc.rect(xPos, currentY, colWidths[8], rowHeight);
+            xPos += colWidths[8];
 
             currentY += rowHeight;
-          });
+          });;
 
           doc.setFontSize(8);
           doc.setTextColor(150, 150, 150);
@@ -295,13 +289,6 @@
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', fontWeight: '500', color: '#2c3e50', marginBottom: '6px' }}>Stampo e JD *</label>
                   <input type="text" name="stampoJD" value={formData.stampoJD} onChange={handleInputChange} placeholder="3.2 057" style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'flex', alignItems: 'center', fontSize: '14px', gap: '8px', cursor: 'pointer', marginTop: '24px' }}>
-                    <input type="checkbox" name="verifica" checked={formData.verifica} onChange={handleInputChange} style={{ width: '16px', height: '16px' }} />
-                    <span style={{ color: '#2c3e50', fontWeight: '500' }}>Verificato</span>
-                  </label>
                 </div>
               </div>
 
