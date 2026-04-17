@@ -54,56 +54,72 @@
         setFormData(prev => ({ ...prev, [name]: value }));
       };
 
+      const compressImage = (dataUrl, callback) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Ridimensiona a max 800px di larghezza/altezza
+          let width = img.width;
+          let height = img.height;
+          const maxDim = 800;
+          
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round(height * maxDim / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round(width * maxDim / height);
+              height = maxDim;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Comprimi a JPEG con qualità 70
+          const compressedData = canvas.toDataURL('image/jpeg', 0.7);
+          callback({ data: compressedData, width, height });
+        };
+        img.src = dataUrl;
+      };
+
       const handleFotoAdd = (files, type) => {
         if (type === 'difetto') {
           if (fotoDifetto.length >= 2) { alert('Max 2 foto per difetto'); return; }
           Array.from(files).forEach(file => {
-            const img = new Image();
-            img.onload = () => {
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                setFotoDifetto(prev => [...prev, { 
-                  data: e.target.result, 
-                  width: img.width, 
-                  height: img.height 
-                }]);
-              };
-              reader.readAsDataURL(file);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              compressImage(e.target.result, (compressed) => {
+                setFotoDifetto(prev => [...prev, compressed]);
+              });
             };
-            img.src = URL.createObjectURL(file);
+            reader.readAsDataURL(file);
           });
         } else if (type === 'verifica') {
           if (fotoVerifica.length >= 2) { alert('Max 2 foto per verifica'); return; }
           Array.from(files).forEach(file => {
-            const img = new Image();
-            img.onload = () => {
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                setFotoVerifica(prev => [...prev, { 
-                  data: e.target.result, 
-                  width: img.width, 
-                  height: img.height 
-                }]);
-              };
-              reader.readAsDataURL(file);
-            };
-            img.src = URL.createObjectURL(file);
-          });
-        } else if (type === 'operatore') {
-          const file = files[0];
-          const img = new Image();
-          img.onload = () => {
             const reader = new FileReader();
             reader.onload = (e) => {
-              setFotoOperatore({ 
-                data: e.target.result, 
-                width: img.width, 
-                height: img.height 
+              compressImage(e.target.result, (compressed) => {
+                setFotoVerifica(prev => [...prev, compressed]);
               });
             };
             reader.readAsDataURL(file);
+          });
+        } else if (type === 'operatore') {
+          const file = files[0];
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            compressImage(e.target.result, (compressed) => {
+              setFotoOperatore(compressed);
+            });
           };
-          img.src = URL.createObjectURL(file);
+          reader.readAsDataURL(file);
         }
       };
 
@@ -188,7 +204,7 @@
           doc.setFont(undefined, 'normal');
           
           pezziProvider.forEach((pezzo) => {
-            if (currentY + rowHeight > pageHeight - 15) {
+            if (currentY + rowHeight > pageHeight - 20) {
               doc.addPage();
               currentY = 15;
             }
