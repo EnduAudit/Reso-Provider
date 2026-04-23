@@ -68,10 +68,10 @@
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
-          // Ridimensiona a max 800px di larghezza/altezza
+          // Ridimensiona a max 600px di larghezza/altezza
           let width = img.width;
           let height = img.height;
-          const maxDim = 800;
+          const maxDim = 600;
           
           if (width > height) {
             if (width > maxDim) {
@@ -89,8 +89,8 @@
           canvas.height = height;
           ctx.drawImage(img, 0, 0, width, height);
           
-          // Comprimi a JPEG con qualità 70
-          const compressedData = canvas.toDataURL('image/jpeg', 0.7);
+          // Comprimi a JPEG con qualità 50 (più aggressivo)
+          const compressedData = canvas.toDataURL('image/jpeg', 0.5);
           callback({ data: compressedData, width, height });
         };
         img.src = dataUrl;
@@ -182,7 +182,7 @@
           
           yPosition += 20;
 
-          const colWidths = [14, 16, 12, 14, 16, 40, 40, 26, 40];
+          const colWidths = [12, 14, 10, 12, 14, 32, 32, 18, 28];
           const headers = ['N°', 'Fornitore', 'Zona', 'DMC', 'Stampo', 'Foto Difetto', 'Foto Verifica', 'Regole', 'Op.'];
           const startX = 10;
           const headerHeight = 14;
